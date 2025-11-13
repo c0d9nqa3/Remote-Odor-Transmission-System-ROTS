@@ -1,13 +1,13 @@
-// ROTS Debug Module - 调试模块
+// ROTS Debug Module - Debug Module
 #include "rots_sender.h"
 #include "rots_debug.h"
 
-// 调试级别
+// Debug level
 static ROTS_DebugLevel_t debug_level = ROTS_DEBUG_INFO;
 
-// 初始化调试系统
+// Initialize debug system
 ROTS_StatusTypeDef ROTS_Debug_Init(void) {
-    // 配置调试LED
+    // Configure debug LEDs
     pinMode(ROTS_ERROR_LED_PIN, OUTPUT);
     pinMode(ROTS_STATUS_LED_PIN, OUTPUT);
     
@@ -18,12 +18,12 @@ ROTS_StatusTypeDef ROTS_Debug_Init(void) {
     return ROTS_OK;
 }
 
-// 设置调试级别
+// Set debug level
 void ROTS_Debug_SetLevel(ROTS_DebugLevel_t level) {
     debug_level = level;
 }
 
-// 打印调试信息
+// Print debug information
 void ROTS_Debug_Print(ROTS_DebugLevel_t level, const char* format, ...) {
     if (level > debug_level) return;
     
@@ -31,11 +31,11 @@ void ROTS_Debug_Print(ROTS_DebugLevel_t level, const char* format, ...) {
     char timestamp[20];
     uint32_t tick = millis();
     
-    // 添加时间戳
+    // Add timestamp
     sprintf(timestamp, "[%lu] ", tick);
     strcpy(buffer, timestamp);
     
-    // 添加级别标识
+    // Add level identifier
     switch (level) {
         case ROTS_DEBUG_ERROR:
             strcat(buffer, "ERROR: ");
@@ -51,17 +51,17 @@ void ROTS_Debug_Print(ROTS_DebugLevel_t level, const char* format, ...) {
             break;
     }
     
-    // 格式化消息
+    // Format message
     va_list args;
     va_start(args, format);
     vsnprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer), format, args);
     va_end(args);
     
-    // 发送到串口
+    // Send to serial port
     Serial.print(buffer);
 }
 
-// 打印十六进制数据
+// Print hexadecimal data
 void ROTS_Debug_PrintHex(ROTS_DebugLevel_t level, const char* label, const uint8_t* data, uint16_t length) {
     if (level > debug_level) return;
     
@@ -88,7 +88,7 @@ void ROTS_Debug_PrintHex(ROTS_DebugLevel_t level, const char* label, const uint8
     Serial.print(buffer);
 }
 
-// 打印系统状态
+// Print system status
 void ROTS_Debug_PrintSystemStatus(void) {
     DEBUG_INFO("=== System Status ===\r\n");
     DEBUG_INFO("Free Heap: %lu bytes\r\n", ESP.getFreeHeap());
@@ -97,7 +97,7 @@ void ROTS_Debug_PrintSystemStatus(void) {
     DEBUG_INFO("Uptime: %lu seconds\r\n", millis() / 1000);
 }
 
-// 打印传感器状态
+// Print sensor status
 void ROTS_Debug_PrintSensorStatus(void) {
     ROTS_SensorStatus_t status;
     if (ROTS_SensorManager_GetStatus(&status) == ROTS_OK) {
@@ -110,7 +110,7 @@ void ROTS_Debug_PrintSensorStatus(void) {
     }
 }
 
-// 打印AI状态
+// Print AI status
 void ROTS_Debug_PrintAIStatus(void) {
     ROTS_AIStatus_t status;
     if (ROTS_AIEngine_GetStatus(&status) == ROTS_OK) {
@@ -123,7 +123,7 @@ void ROTS_Debug_PrintAIStatus(void) {
     }
 }
 
-// 打印通信状态
+// Print communication status
 void ROTS_Debug_PrintCommStatus(void) {
     ROTS_CommStatus_t status;
     if (ROTS_Communication_GetStatus(&status) == ROTS_OK) {
@@ -135,7 +135,7 @@ void ROTS_Debug_PrintCommStatus(void) {
     }
 }
 
-// 打印内存使用情况
+// Print memory usage
 void ROTS_Debug_PrintMemoryUsage(void) {
     DEBUG_INFO("=== Memory Usage ===\r\n");
     DEBUG_INFO("Free Heap: %lu bytes\r\n", ESP.getFreeHeap());
@@ -144,7 +144,7 @@ void ROTS_Debug_PrintMemoryUsage(void) {
     DEBUG_INFO("PSRAM Size: %lu bytes\r\n", ESP.getPsramSize());
 }
 
-// 打印错误信息
+// Print error information
 void ROTS_Debug_PrintError(ROTS_StatusTypeDef error_code) {
     const char* error_messages[] = {
         "OK",
@@ -165,7 +165,7 @@ void ROTS_Debug_PrintError(ROTS_StatusTypeDef error_code) {
     }
 }
 
-// 闪烁LED指示
+// Blink LED indicator
 void ROTS_Debug_BlinkLED(uint8_t pin, uint8_t times, uint16_t delay_ms) {
     for (uint8_t i = 0; i < times; i++) {
         digitalWrite(pin, HIGH);
@@ -175,12 +175,12 @@ void ROTS_Debug_BlinkLED(uint8_t pin, uint8_t times, uint16_t delay_ms) {
     }
 }
 
-// 错误LED指示
+// Error LED indicator
 void ROTS_Debug_ErrorLED(bool state) {
     digitalWrite(ROTS_ERROR_LED_PIN, state ? HIGH : LOW);
 }
 
-// 状态LED指示
+// Status LED indicator
 void ROTS_Debug_StatusLED(bool state) {
     digitalWrite(ROTS_STATUS_LED_PIN, state ? HIGH : LOW);
 }

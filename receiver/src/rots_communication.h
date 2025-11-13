@@ -38,6 +38,7 @@ ROTS_StatusTypeDef ROTS_Communication_ReceiveMessage(ROTS_MessageTypeDef* messag
 ROTS_StatusTypeDef ROTS_Communication_SendStatus(ROTS_SystemStatus_t* status);
 ROTS_StatusTypeDef ROTS_Communication_SendError(ROTS_StatusTypeDef error_code);
 ROTS_StatusTypeDef ROTS_Communication_KeepAlive(void);
+ROTS_StatusTypeDef ROTS_Communication_Update(void);
 
 /* MQTT Callbacks */
 void ROTS_MQTT_MessageCallback(char* topic, char* payload, int length);

@@ -9,7 +9,14 @@
 
 #include "rots_receiver.h"
 #include "rots_recipe_manager.h"
+#include "rots_spi_flash.h"
+#include "rots_debug.h"
 #include <string.h>
+
+/* Recipe storage constants */
+#define RECIPE_STORAGE_MAGIC            0x524F5453  // "ROTS"
+#define RECIPE_STORAGE_VERSION          1
+#define RECIPE_STORAGE_BASE_ADDR        0x00000000
 
 /* Recipe structure */
 typedef struct {
@@ -68,7 +75,7 @@ static const ROTS_Recipe_t predefined_recipes[] = {
         .mixing_time = 2500,
         .fan_speed = 55
     },
-    // Mixed recipe (example)
+    // Mixed recipe
     {
         .odor_type = ROTS_ODOR_MIXED,
         .name = "Mixed",
@@ -79,14 +86,24 @@ static const ROTS_Recipe_t predefined_recipes[] = {
     }
 };
 
+/* Recipe storage header structure */
+typedef struct {
+    uint32_t magic;              // Magic number "ROTS"
+    uint16_t version;            // Storage format version
+    uint16_t recipe_count;       // Number of custom recipes
+    uint32_t checksum;           // Checksum for data integrity
+} ROTS_RecipeStorageHeader_t;
+
 /* Private variables */
 static bool recipe_manager_initialized = false;
 static ROTS_Recipe_t custom_recipes[10];  // Space for custom recipes
 static uint8_t custom_recipe_count = 0;
+static bool spi_flash_available = false;
 
 /* Private function prototypes */
 static ROTS_StatusTypeDef ROTS_RecipeManager_LoadCustomRecipes(void);
 static ROTS_StatusTypeDef ROTS_RecipeManager_SaveCustomRecipes(void);
+static uint32_t ROTS_RecipeManager_CalculateChecksum(const uint8_t* data, uint32_t length);
 
 /**
  * @brief Initialize recipe manager
@@ -94,12 +111,23 @@ static ROTS_StatusTypeDef ROTS_RecipeManager_SaveCustomRecipes(void);
  */
 ROTS_StatusTypeDef ROTS_RecipeManager_Init(void)
 {
+    // Initialize SPI Flash for recipe storage
+    ROTS_StatusTypeDef status = ROTS_SPI_Flash_Init();
+    if (status == ROTS_OK) {
+        spi_flash_available = true;
+        DEBUG_INFO("SPI Flash available for recipe storage\r\n");
+    } else {
+        spi_flash_available = false;
+        DEBUG_WARNING("SPI Flash not available, using RAM storage only\r\n");
+    }
+    
     // Load custom recipes from storage
-    ROTS_StatusTypeDef status = ROTS_RecipeManager_LoadCustomRecipes();
+    status = ROTS_RecipeManager_LoadCustomRecipes();
     if (status != ROTS_OK) {
         // If loading fails, initialize with empty custom recipes
         custom_recipe_count = 0;
         memset(custom_recipes, 0, sizeof(custom_recipes));
+        DEBUG_WARNING("Failed to load custom recipes from storage\r\n");
     }
     
     recipe_manager_initialized = true;
@@ -252,26 +280,142 @@ ROTS_StatusTypeDef ROTS_RecipeManager_GetAllRecipes(ROTS_Recipe_t* recipes, uint
 }
 
 /**
- * @brief Load custom recipes from storage
+ * @brief Load custom recipes from SPI Flash storage
  * @return ROTS_OK if successful, error code otherwise
  */
 static ROTS_StatusTypeDef ROTS_RecipeManager_LoadCustomRecipes(void)
 {
-    // This would typically load from SPI Flash or EEPROM
-    // For now, we'll initialize with empty custom recipes
-    custom_recipe_count = 0;
-    memset(custom_recipes, 0, sizeof(custom_recipes));
+    if (!spi_flash_available) {
+        // SPI Flash not available, use empty recipes
+        custom_recipe_count = 0;
+        memset(custom_recipes, 0, sizeof(custom_recipes));
+        return ROTS_OK;
+    }
+    
+    ROTS_RecipeStorageHeader_t header;
+    ROTS_StatusTypeDef status;
+    
+    // Read storage header
+    status = ROTS_SPI_Flash_Read(RECIPE_STORAGE_BASE_ADDR, (uint8_t*)&header, sizeof(header));
+    if (status != ROTS_OK) {
+        return status;
+    }
+    
+    // Verify magic number
+    if (header.magic != RECIPE_STORAGE_MAGIC) {
+        DEBUG_WARNING("Invalid recipe storage magic number\r\n");
+        custom_recipe_count = 0;
+        memset(custom_recipes, 0, sizeof(custom_recipes));
+        return ROTS_OK;  // Not an error, just no valid data
+    }
+    
+    // Verify version
+    if (header.version != RECIPE_STORAGE_VERSION) {
+        DEBUG_WARNING("Recipe storage version mismatch\r\n");
+        custom_recipe_count = 0;
+        memset(custom_recipes, 0, sizeof(custom_recipes));
+        return ROTS_OK;
+    }
+    
+    // Limit recipe count
+    uint16_t recipe_count = header.recipe_count;
+    if (recipe_count > 10) {
+        recipe_count = 10;
+    }
+    
+    // Read recipes
+    if (recipe_count > 0) {
+        uint32_t recipe_data_size = recipe_count * sizeof(ROTS_Recipe_t);
+        status = ROTS_SPI_Flash_Read(RECIPE_STORAGE_BASE_ADDR + sizeof(header), 
+                                     (uint8_t*)custom_recipes, recipe_data_size);
+        if (status != ROTS_OK) {
+            return status;
+        }
+        
+        // Verify checksum
+        uint32_t calculated_checksum = ROTS_RecipeManager_CalculateChecksum(
+            (uint8_t*)custom_recipes, recipe_data_size);
+        if (calculated_checksum != header.checksum) {
+            DEBUG_WARNING("Recipe storage checksum mismatch\r\n");
+            custom_recipe_count = 0;
+            memset(custom_recipes, 0, sizeof(custom_recipes));
+            return ROTS_OK;
+        }
+    }
+    
+    custom_recipe_count = recipe_count;
+    DEBUG_INFO("Loaded %d custom recipes from SPI Flash\r\n", custom_recipe_count);
     
     return ROTS_OK;
 }
 
 /**
- * @brief Save custom recipes to storage
+ * @brief Save custom recipes to SPI Flash storage
  * @return ROTS_OK if successful, error code otherwise
  */
 static ROTS_StatusTypeDef ROTS_RecipeManager_SaveCustomRecipes(void)
 {
-    // This would typically save to SPI Flash or EEPROM
-    // For now, we'll just return OK
+    if (!spi_flash_available) {
+        // SPI Flash not available, recipes only stored in RAM
+        return ROTS_OK;
+    }
+    
+    ROTS_RecipeStorageHeader_t header;
+    ROTS_StatusTypeDef status;
+    
+    // Prepare header
+    header.magic = RECIPE_STORAGE_MAGIC;
+    header.version = RECIPE_STORAGE_VERSION;
+    header.recipe_count = custom_recipe_count;
+    
+    // Calculate checksum
+    uint32_t recipe_data_size = custom_recipe_count * sizeof(ROTS_Recipe_t);
+    header.checksum = ROTS_RecipeManager_CalculateChecksum(
+        (uint8_t*)custom_recipes, recipe_data_size);
+    
+    // Erase sector before writing
+    status = ROTS_SPI_Flash_EraseSector(RECIPE_STORAGE_BASE_ADDR);
+    if (status != ROTS_OK) {
+        DEBUG_ERROR("Failed to erase recipe storage sector\r\n");
+        return status;
+    }
+    
+    // Write header
+    status = ROTS_SPI_Flash_Write(RECIPE_STORAGE_BASE_ADDR, (uint8_t*)&header, sizeof(header));
+    if (status != ROTS_OK) {
+        DEBUG_ERROR("Failed to write recipe storage header\r\n");
+        return status;
+    }
+    
+    // Write recipes
+    if (custom_recipe_count > 0) {
+        status = ROTS_SPI_Flash_Write(RECIPE_STORAGE_BASE_ADDR + sizeof(header),
+                                      (uint8_t*)custom_recipes, recipe_data_size);
+        if (status != ROTS_OK) {
+            DEBUG_ERROR("Failed to write recipes to SPI Flash\r\n");
+            return status;
+        }
+    }
+    
+    DEBUG_INFO("Saved %d custom recipes to SPI Flash\r\n", custom_recipe_count);
+    
     return ROTS_OK;
+}
+
+/**
+ * @brief Calculate checksum for data integrity
+ * @param data Data buffer
+ * @param length Data length
+ * @return Calculated checksum
+ */
+static uint32_t ROTS_RecipeManager_CalculateChecksum(const uint8_t* data, uint32_t length)
+{
+    uint32_t checksum = 0;
+    
+    for (uint32_t i = 0; i < length; i++) {
+        checksum += data[i];
+        checksum = (checksum << 1) | (checksum >> 31);  // Rotate left
+    }
+    
+    return checksum;
 }

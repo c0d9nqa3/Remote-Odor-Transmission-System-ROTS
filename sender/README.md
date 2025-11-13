@@ -1,65 +1,65 @@
-# ROTS Sender - ESP32发送端
+# ROTS Sender - ESP32 Sender End
 
-基于ESP32的远程气味识别发送端，使用边缘AI进行实时气味检测。
+ESP32-based remote odor recognition sender, using edge AI for real-time odor detection.
 
-## 硬件要求
+## Hardware Requirements
 
-- ESP32开发板 (ESP32-WROOM-32E推荐)
-- 8x MQ系列气体传感器 (MQ-2到MQ-9)
-- DHT22温湿度传感器
-- BMP280气压传感器
-- ADS1115 ADC转换器
-- 电源管理模块
+- ESP32 development board (ESP32-WROOM-32E recommended)
+- 8x MQ-series gas sensors (MQ-2 to MQ-9)
+- DHT22 temperature and humidity sensor
+- BMP280 pressure sensor
+- ADS1115 ADC converter (optional, ESP32 has built-in ADC)
+- Power management module
 
-## 项目结构
+## Project Structure
 
 ```
 sender/
-├── src/                    # 源代码
-│   ├── main.cpp           # 主程序
-│   ├── rots_sender.h      # 主头文件
-│   ├── rots_sensor_manager.cpp/h    # 传感器管理
-│   ├── rots_ai_engine.cpp/h         # AI推理引擎
-│   ├── rots_communication.cpp/h     # 通信模块
-│   ├── rots_debug.cpp/h             # 调试模块
-│   └── rots_system_monitor.cpp/h    # 系统监控
-├── lib/                   # 库文件
-├── models/                # AI模型文件
-├── platformio.ini         # PlatformIO配置
-└── README.md              # 说明文档
+├── src/                    # Source code
+│   ├── main.cpp           # Main program
+│   ├── rots_sender.h      # Main header file
+│   ├── rots_sensor_manager.cpp/h    # Sensor management
+│   ├── rots_ai_engine.cpp/h         # AI inference engine
+│   ├── rots_communication.cpp/h     # Communication module
+│   ├── rots_debug.cpp/h             # Debug module
+│   └── rots_system_monitor.cpp/h    # System monitoring
+├── lib/                   # Library files
+├── models/                # AI model files
+├── platformio.ini         # PlatformIO configuration
+└── README.md              # Documentation
 ```
 
-## 功能特性
+## Features
 
-- **多传感器融合**: 8路MQ传感器 + 环境传感器
-- **边缘AI推理**: 实时气味识别和分类
-- **WiFi通信**: 连接云服务器
-- **MQTT协议**: 实时数据传输
-- **调试支持**: 串口调试和LED指示
-- **系统监控**: 内存、网络、错误监控
+- **Multi-sensor fusion**: 8-channel MQ sensors + environmental sensors
+- **Edge AI inference**: Real-time odor recognition and classification
+- **WiFi communication**: Connect to cloud server
+- **MQTT protocol**: Real-time data transmission
+- **Debug support**: Serial debugging and LED indicators
+- **System monitoring**: Memory, network, and error monitoring
 
-## 快速开始
+## Quick Start
 
-### 1. 安装PlatformIO
+### 1. Install PlatformIO
 
 ```bash
-# 安装PlatformIO Core
+# Install PlatformIO Core
 pip install platformio
 
-# 或者使用VS Code扩展
-# 搜索并安装PlatformIO IDE
+# Or use VS Code extension
+# Search and install PlatformIO IDE
 ```
 
-### 2. 克隆项目
+### 2. Clone the project
 
 ```bash
 git clone https://github.com/yourusername/ROTS.git
 cd ROTS/sender
 ```
 
-### 3. 配置网络
+### 3. Configure network
 
-编辑 `src/rots_sender.h` 中的网络配置：
+Edit network configuration in `src/rots_sender.h`:
 
 ```cpp
 #define ROTS_WIFI_SSID            "your_wifi_ssid"
@@ -67,24 +67,24 @@ cd ROTS/sender
 #define ROTS_MQTT_BROKER_HOST     "your_mqtt_broker"
 ```
 
-### 4. 编译和上传
+### 4. Build and upload
 
 ```bash
-# 编译项目
+# Build project
 pio run
 
-# 上传到ESP32
+# Upload to ESP32
 pio run --target upload
 
-# 监控串口输出
+# Monitor serial output
 pio device monitor
 ```
 
-## 硬件连接
+## Hardware Connections
 
-### ESP32引脚分配
+### ESP32 Pin Assignment
 
-#### 模拟输入 (MQ传感器)
+#### Analog Input (MQ sensors)
 - MQ2: GPIO36 (ADC1_CH0)
 - MQ3: GPIO39 (ADC1_CH3)
 - MQ4: GPIO34 (ADC1_CH6)
@@ -94,18 +94,18 @@ pio device monitor
 - MQ8: GPIO25 (ADC1_CH8)
 - MQ9: GPIO26 (ADC1_CH9)
 
-#### I2C接口 (环境传感器)
+#### I2C Interface (Environmental sensors)
 - SDA: GPIO21
 - SCL: GPIO22
 
-#### 状态指示
+#### Status Indicators
 - Error LED: GPIO2
 - Status LED: GPIO4
 - Sensor Power: GPIO5
 
-### 传感器连接
+### Sensor Connections
 
-#### MQ传感器
+#### MQ Sensors
 ```
 VCC → 5V
 GND → GND
@@ -127,159 +127,159 @@ SDA → GPIO21
 SCL → GPIO22
 ```
 
-## 配置说明
+## Configuration
 
-### 1. 传感器校准
+### 1. Sensor Calibration
 
-系统启动时会自动进行传感器校准：
+The system automatically calibrates sensors on startup:
 
 ```cpp
-// 在清洁空气中校准
+// Calibrate in clean air
 ROTS_SensorManager_CalibrateSensors();
 ```
 
-### 2. AI模型配置
+### 2. AI Model Configuration
 
 ```cpp
-// 设置置信度阈值
+// Set confidence threshold
 #define ROTS_AI_CONFIDENCE_THRESHOLD  0.7f
 
-// 设置推理间隔
+// Set inference interval
 #define ROTS_AI_INFERENCE_INTERVAL    500    // ms
 ```
 
-### 3. 通信配置
+### 3. Communication Configuration
 
 ```cpp
-// WiFi配置
+// WiFi configuration
 #define ROTS_WIFI_SSID            "ROTS_Network"
 #define ROTS_WIFI_PASSWORD        "rots_password_2024"
 
-// MQTT配置
+// MQTT configuration
 #define ROTS_MQTT_BROKER_HOST     "mqtt.rots-system.com"
 #define ROTS_MQTT_BROKER_PORT     1883
 ```
 
-## 调试指南
+## Debug Guide
 
-### 1. 串口调试
+### 1. Serial Debugging
 
-- 波特率: 115200
-- 数据位: 8, 停止位: 1, 校验: 无
+- Baud rate: 115200
+- Data bits: 8, Stop bits: 1, Parity: None
 
-### 2. 调试级别
+### 2. Debug Levels
 
 ```cpp
-ROTS_DEBUG_ERROR   = 0  // 错误信息
-ROTS_DEBUG_WARNING = 1  // 警告信息
-ROTS_DEBUG_INFO    = 2  // 一般信息
-ROTS_DEBUG_DEBUG   = 3  // 调试信息
+ROTS_DEBUG_ERROR   = 0  // Error messages
+ROTS_DEBUG_WARNING = 1  // Warning messages
+ROTS_DEBUG_INFO    = 2  // General information
+ROTS_DEBUG_DEBUG   = 3  // Debug information
 ```
 
-### 3. 调试命令
+### 3. Debug Commands
 
 ```cpp
-// 设置调试级别
+// Set debug level
 ROTS_Debug_SetLevel(ROTS_DEBUG_INFO);
 
-// 打印调试信息
+// Print debug information
 DEBUG_INFO("System started\r\n");
 DEBUG_ERROR("Error occurred: %d\r\n", error_code);
 ```
 
-### 4. LED指示
+### 4. LED Indicators
 
-- **Error LED**: 错误指示，闪烁表示错误
-- **Status LED**: 状态指示，常亮表示WiFi连接
+- **Error LED**: Error indicator, blinking indicates error
+- **Status LED**: Status indicator, solid indicates WiFi connection
 
-## 性能优化
+## Performance Optimization
 
-### 1. 内存优化
+### 1. Memory Optimization
 
 ```cpp
-// 检查内存使用
+// Check memory usage
 DEBUG_INFO("Free Heap: %lu bytes\r\n", ESP.getFreeHeap());
 DEBUG_INFO("Free PSRAM: %lu bytes\r\n", ESP.getFreePsram());
 ```
 
-### 2. 功耗优化
+### 2. Power Optimization
 
 ```cpp
-// 设置CPU频率
-setCpuFrequencyMhz(80);  // 降低功耗
+// Set CPU frequency
+setCpuFrequencyMhz(80);  // Reduce power consumption
 
-// 启用深度睡眠
+// Enable deep sleep
 esp_deep_sleep_start();
 ```
 
-### 3. 网络优化
+### 3. Network Optimization
 
 ```cpp
-// 设置WiFi功率
+// Set WiFi power
 WiFi.setTxPower(WIFI_POWER_11dBm);
 
-// 设置MQTT保持连接
+// Set MQTT keep-alive
 mqtt_client.setKeepAlive(60);
 ```
 
-## 故障排除
+## Troubleshooting
 
-### 1. 编译错误
+### 1. Compilation Errors
 
-- 检查PlatformIO配置
-- 检查库依赖
-- 检查Arduino框架版本
+- Check PlatformIO configuration
+- Check library dependencies
+- Check Arduino framework version
 
-### 2. 上传失败
+### 2. Upload Failures
 
-- 检查USB连接
-- 检查端口设置
-- 检查ESP32进入下载模式
+- Check USB connection
+- Check port settings
+- Check ESP32 enters download mode
 
-### 3. 运行错误
+### 3. Runtime Errors
 
-- 检查串口输出
-- 检查硬件连接
-- 检查网络配置
+- Check serial output
+- Check hardware connections
+- Check network configuration
 
-### 4. 传感器问题
+### 4. Sensor Issues
 
-- 检查电源供应
-- 检查模拟输入
-- 检查校准参数
+- Check power supply
+- Check analog input
+- Check calibration parameters
 
-## API参考
+## API Reference
 
-### 传感器管理
+### Sensor Management
 
 ```cpp
-// 读取传感器数据
+// Read sensor data
 ROTS_StatusTypeDef ROTS_SensorManager_ReadSensors(ROTS_SensorData_t* data);
 
-// 获取传感器状态
+// Get sensor status
 ROTS_StatusTypeDef ROTS_SensorManager_GetStatus(ROTS_SensorStatus_t* status);
 ```
 
-### AI引擎
+### AI Engine
 
 ```cpp
-// 处理气味检测
+// Process odor detection
 ROTS_StatusTypeDef ROTS_AIEngine_ProcessOdor(ROTS_OdorResult_t* result);
 
-// 获取AI状态
+// Get AI status
 ROTS_StatusTypeDef ROTS_AIEngine_GetStatus(ROTS_AIStatus_t* status);
 ```
 
-### 通信模块
+### Communication Module
 
 ```cpp
-// 发送检测结果
+// Send detection result
 ROTS_StatusTypeDef ROTS_Communication_SendOdorDetection(const ROTS_OdorResult_t* result);
 
-// 发送状态信息
+// Send status information
 ROTS_StatusTypeDef ROTS_Communication_SendStatus(const ROTS_SenderStatus_t* status);
 ```
 
-## 许可证
+## License
 
-本项目采用MIT许可证 - 详见主项目README。
+This project is licensed under the MIT License - see the main project README for details.

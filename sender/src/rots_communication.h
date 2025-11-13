@@ -8,7 +8,7 @@ extern "C" {
 
 #include "rots_sender.h"
 
-// 通信状态结构
+// Communication status structure
 typedef struct {
     bool wifi_connected;
     bool mqtt_connected;
@@ -16,7 +16,7 @@ typedef struct {
     uint32_t last_heartbeat;
 } ROTS_CommStatus_t;
 
-// 函数声明
+// Function declarations
 ROTS_StatusTypeDef ROTS_Communication_Init(void);
 ROTS_StatusTypeDef ROTS_Communication_SendOdorDetection(const ROTS_OdorResult_t* result);
 ROTS_StatusTypeDef ROTS_Communication_SendStatus(const ROTS_SenderStatus_t* status);

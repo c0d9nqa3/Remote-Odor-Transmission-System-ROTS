@@ -1,46 +1,75 @@
-// ROTS Sensor Manager - 传感器管理模块
+// ROTS Sensor Manager - Sensor Management Module
 #include "rots_sender.h"
 #include "rots_sensor_manager.h"
 #include "rots_debug.h"
+#include <DHT.h>
+#include <Adafruit_BMP280.h>
+#include <Wire.h>
 
-// 私有变量
+// Private variables
 static ROTS_SensorData_t current_sensor_data;
 static ROTS_SensorData_t sensor_history[10];
 static uint8_t history_index = 0;
 static bool sensor_initialized = false;
 
-// 传感器校准参数
+// Sensor calibration parameters
 static float sensor_calibration[ROTS_MAX_SENSORS] = {
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
 };
 
-// 温度补偿参数
-static float temperature_compensation = 0.02f; // 每度温度补偿系数
+// Temperature compensation parameter
+static float temperature_compensation = 0.02f; // Compensation coefficient per degree
 
-// 私有函数声明
+// DHT22 sensor instance
+#define DHT22_PIN 21
+#define DHT22_TYPE DHT22
+static DHT dht(DHT22_PIN, DHT22_TYPE);
+
+// BMP280 sensor instance
+static Adafruit_BMP280 bmp;
+#define BMP280_I2C_ADDRESS 0x76
+
+// Private function declarations
 static float ROTS_SensorManager_ReadMQSensor(uint8_t pin, uint8_t sensor_id);
 static void ROTS_SensorManager_ApplyCalibration(ROTS_SensorData_t* data);
 static void ROTS_SensorManager_ApplyTemperatureCompensation(ROTS_SensorData_t* data);
 static void ROTS_SensorManager_UpdateHistory(const ROTS_SensorData_t* data);
 
-// 初始化传感器管理器
+// Initialize sensor manager
 ROTS_StatusTypeDef ROTS_SensorManager_Init(void) {
-    // 配置引脚
+    // Configure sensor power pin
     pinMode(ROTS_SENSOR_POWER_PIN, OUTPUT);
     digitalWrite(ROTS_SENSOR_POWER_PIN, HIGH);
     
-    // 初始化I2C
+    // Initialize I2C bus
     Wire.begin(ROTS_SDA_PIN, ROTS_SCL_PIN);
+    Wire.setClock(400000); // 400kHz I2C speed
     
-    // 等待传感器预热
+    // Initialize DHT22 sensor
+    dht.begin();
+    
+    // Initialize BMP280 sensor
+    if (!bmp.begin(BMP280_I2C_ADDRESS)) {
+        DEBUG_ERROR("BMP280 sensor not found\r\n");
+        return ROTS_SENSOR_ERROR;
+    }
+    
+    // Configure BMP280
+    bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     // Operating mode
+                    Adafruit_BMP280::SAMPLING_X2,     // Temperature oversampling
+                    Adafruit_BMP280::SAMPLING_X16,    // Pressure oversampling
+                    Adafruit_BMP280::FILTER_X16,      // Filtering
+                    Adafruit_BMP280::STANDBY_MS_500); // Standby time
+    
+    // Wait for sensors to warm up
     DEBUG_INFO("Warming up sensors...\r\n");
     delay(3000);
     
-    // 初始化传感器数据
+    // Initialize sensor data structures
     memset(&current_sensor_data, 0, sizeof(ROTS_SensorData_t));
     memset(sensor_history, 0, sizeof(sensor_history));
     
-    // 执行传感器校准
+    // Perform sensor calibration
     ROTS_StatusTypeDef status = ROTS_SensorManager_CalibrateSensors();
     if (status != ROTS_OK) {
         DEBUG_ERROR("Sensor calibration failed\r\n");
@@ -52,13 +81,13 @@ ROTS_StatusTypeDef ROTS_SensorManager_Init(void) {
     return ROTS_OK;
 }
 
-// 读取所有传感器数据
+// Read all sensor data
 ROTS_StatusTypeDef ROTS_SensorManager_ReadSensors(ROTS_SensorData_t* data) {
     if (!sensor_initialized || !data) {
         return ROTS_INVALID_PARAM;
     }
     
-    // 读取MQ传感器
+    // Read MQ gas sensors
     data->mq2_value = ROTS_SensorManager_ReadMQSensor(ROTS_MQ2_PIN, 0);
     data->mq3_value = ROTS_SensorManager_ReadMQSensor(ROTS_MQ3_PIN, 1);
     data->mq4_value = ROTS_SensorManager_ReadMQSensor(ROTS_MQ4_PIN, 2);
@@ -68,32 +97,32 @@ ROTS_StatusTypeDef ROTS_SensorManager_ReadSensors(ROTS_SensorData_t* data) {
     data->mq8_value = ROTS_SensorManager_ReadMQSensor(ROTS_MQ8_PIN, 6);
     data->mq9_value = ROTS_SensorManager_ReadMQSensor(ROTS_MQ9_PIN, 7);
     
-    // 读取环境传感器
+    // Read environmental sensors
     data->temperature = ROTS_SensorManager_ReadTemperature();
     data->humidity = ROTS_SensorManager_ReadHumidity();
     data->pressure = ROTS_SensorManager_ReadPressure();
     
-    // 设置时间戳
+    // Set timestamp
     data->timestamp = millis();
     
-    // 应用校准和补偿
+    // Apply calibration and compensation
     ROTS_SensorManager_ApplyCalibration(data);
     ROTS_SensorManager_ApplyTemperatureCompensation(data);
     
-    // 更新历史数据
+    // Update history buffer
     ROTS_SensorManager_UpdateHistory(data);
     
     return ROTS_OK;
 }
 
-// 更新传感器数据
+// Update sensor data
 void ROTS_SensorManager_UpdateData(const ROTS_SensorData_t* data) {
     if (!data) return;
     
     memcpy(&current_sensor_data, data, sizeof(ROTS_SensorData_t));
 }
 
-// 获取当前传感器数据
+// Get current sensor data
 ROTS_StatusTypeDef ROTS_SensorManager_GetCurrentData(ROTS_SensorData_t* data) {
     if (!sensor_initialized || !data) {
         return ROTS_INVALID_PARAM;
@@ -103,7 +132,7 @@ ROTS_StatusTypeDef ROTS_SensorManager_GetCurrentData(ROTS_SensorData_t* data) {
     return ROTS_OK;
 }
 
-// 获取传感器历史数据
+// Get sensor history data
 ROTS_StatusTypeDef ROTS_SensorManager_GetHistoryData(ROTS_SensorData_t* data, uint8_t count) {
     if (!sensor_initialized || !data || count > 10) {
         return ROTS_INVALID_PARAM;
@@ -117,21 +146,27 @@ ROTS_StatusTypeDef ROTS_SensorManager_GetHistoryData(ROTS_SensorData_t* data, ui
     return ROTS_OK;
 }
 
-// 校准传感器
+// Calibrate sensors in clean air
 ROTS_StatusTypeDef ROTS_SensorManager_CalibrateSensors(void) {
     DEBUG_INFO("Starting sensor calibration...\r\n");
     
-    // 在清洁空气中校准
+    // Calibrate in clean air (baseline reading)
     float calibration_values[ROTS_MAX_SENSORS];
     const int calibration_samples = 100;
+    
+    uint8_t mq_pins[ROTS_MAX_SENSORS] = {
+        ROTS_MQ2_PIN, ROTS_MQ3_PIN, ROTS_MQ4_PIN, ROTS_MQ5_PIN,
+        ROTS_MQ6_PIN, ROTS_MQ7_PIN, ROTS_MQ8_PIN, ROTS_MQ9_PIN
+    };
     
     for (int sensor = 0; sensor < ROTS_MAX_SENSORS; sensor++) {
         float sum = 0;
         for (int i = 0; i < calibration_samples; i++) {
-            sum += analogRead(ROTS_MQ2_PIN + sensor);
+            sum += analogRead(mq_pins[sensor]);
             delay(10);
         }
         calibration_values[sensor] = sum / calibration_samples;
+        // Calculate calibration factor to normalize to full scale
         sensor_calibration[sensor] = 4095.0f / calibration_values[sensor];
     }
     
@@ -139,55 +174,82 @@ ROTS_StatusTypeDef ROTS_SensorManager_CalibrateSensors(void) {
     return ROTS_OK;
 }
 
-// 读取MQ传感器
+// Read MQ gas sensor
 static float ROTS_SensorManager_ReadMQSensor(uint8_t pin, uint8_t sensor_id) {
-    // 读取模拟值
+    // Read analog value (12-bit ADC, 0-4095)
     int raw_value = analogRead(pin);
     
-    // 转换为电压值 (0-3.3V)
+    // Convert to voltage (0-3.3V)
     float voltage = (raw_value * 3.3f) / 4095.0f;
     
-    // 应用校准
+    // Apply calibration
     float calibrated_value = voltage * sensor_calibration[sensor_id];
     
-    // 转换为电阻值 (假设RL=10kΩ)
+    // Convert to resistance value (assuming load resistor RL=10kΩ)
+    // Vout = Vcc * RL / (RL + Rsensor)
+    // Rsensor = RL * (Vcc - Vout) / Vout
     float resistance = (3.3f - calibrated_value) * 10000.0f / calibrated_value;
     
-    // 防止除零错误
+    // Prevent division by zero
     if (resistance < 1.0f) resistance = 1.0f;
     
-    // 转换为气体浓度 (简化计算)
-    float concentration = pow(10, (log10(resistance) - 2.0f) / 0.8f);
+    // Convert resistance to gas concentration using sensor-specific formula
+    // This is a simplified calculation - actual formulas vary by sensor type
+    // For MQ sensors: Rs/R0 = a * (concentration)^b
+    // concentration = 10^((log10(Rs/R0) - log10(a)) / b)
+    float ratio = resistance / 10000.0f; // Assume R0 = 10kΩ in clean air
+    float concentration = pow(10, (log10(ratio) - 0.477f) / -0.8f);
     
-    // 限制浓度范围
+    // Limit concentration range (ppm)
     if (concentration > 1000.0f) concentration = 1000.0f;
     if (concentration < 0.1f) concentration = 0.1f;
     
     return concentration;
 }
 
-// 读取温度
+// Read temperature from DHT22 sensor
 float ROTS_SensorManager_ReadTemperature(void) {
-    // 这里应该实现DHT22或BMP280温度读取
-    // 暂时返回模拟值
-    return 25.0f + random(-5, 5);
+    float temperature = dht.readTemperature();
+    
+    // Check if reading is valid
+    if (isnan(temperature)) {
+        DEBUG_ERROR("Failed to read temperature from DHT22\r\n");
+        // Return last known value if available
+        return current_sensor_data.temperature > 0 ? current_sensor_data.temperature : 25.0f;
+    }
+    
+    return temperature;
 }
 
-// 读取湿度
+// Read humidity from DHT22 sensor
 float ROTS_SensorManager_ReadHumidity(void) {
-    // 这里应该实现DHT22湿度读取
-    // 暂时返回模拟值
-    return 50.0f + random(-10, 10);
+    float humidity = dht.readHumidity();
+    
+    // Check if reading is valid
+    if (isnan(humidity)) {
+        DEBUG_ERROR("Failed to read humidity from DHT22\r\n");
+        // Return last known value if available
+        return current_sensor_data.humidity > 0 ? current_sensor_data.humidity : 50.0f;
+    }
+    
+    return humidity;
 }
 
-// 读取气压
+// Read pressure from BMP280 sensor
 float ROTS_SensorManager_ReadPressure(void) {
-    // 这里应该实现BMP280气压读取
-    // 暂时返回模拟值
-    return 1013.25f + random(-10, 10);
+    float pressure = bmp.readPressure() / 100.0f; // Convert Pa to hPa
+    
+    // Check if reading is valid
+    if (isnan(pressure) || pressure <= 0) {
+        DEBUG_ERROR("Failed to read pressure from BMP280\r\n");
+        // Return last known value if available
+        return current_sensor_data.pressure > 0 ? current_sensor_data.pressure : 1013.25f;
+    }
+    
+    return pressure;
 }
 
-// 应用校准
+// Apply calibration factors to sensor data
 static void ROTS_SensorManager_ApplyCalibration(ROTS_SensorData_t* data) {
     data->mq2_value *= sensor_calibration[0];
     data->mq3_value *= sensor_calibration[1];
@@ -199,8 +261,10 @@ static void ROTS_SensorManager_ApplyCalibration(ROTS_SensorData_t* data) {
     data->mq9_value *= sensor_calibration[7];
 }
 
-// 应用温度补偿
+// Apply temperature compensation to gas sensor readings
 static void ROTS_SensorManager_ApplyTemperatureCompensation(ROTS_SensorData_t* data) {
+    // MQ sensors are sensitive to temperature changes
+    // Compensation factor based on deviation from 25°C reference
     float temp_factor = 1.0f + (data->temperature - 25.0f) * temperature_compensation;
     
     data->mq2_value *= temp_factor;
@@ -213,13 +277,13 @@ static void ROTS_SensorManager_ApplyTemperatureCompensation(ROTS_SensorData_t* d
     data->mq9_value *= temp_factor;
 }
 
-// 更新历史数据
+// Update sensor history buffer
 static void ROTS_SensorManager_UpdateHistory(const ROTS_SensorData_t* data) {
     memcpy(&sensor_history[history_index], data, sizeof(ROTS_SensorData_t));
     history_index = (history_index + 1) % 10;
 }
 
-// 获取传感器状态
+// Get sensor status information
 ROTS_StatusTypeDef ROTS_SensorManager_GetStatus(ROTS_SensorStatus_t* status) {
     if (!sensor_initialized || !status) {
         return ROTS_INVALID_PARAM;
@@ -231,8 +295,18 @@ ROTS_StatusTypeDef ROTS_SensorManager_GetStatus(ROTS_SensorStatus_t* status) {
     status->humidity = current_sensor_data.humidity;
     status->pressure = current_sensor_data.pressure;
     
-    // 计算传感器健康状态
-    status->sensor_health = 100; // 简化实现
+    // Calculate sensor health status
+    // Check if sensors are returning valid readings
+    uint32_t time_since_last_read = millis() - current_sensor_data.timestamp;
+    if (time_since_last_read > 5000) {
+        status->sensor_health = 0; // No recent readings
+    } else if (status->temperature < -40.0f || status->temperature > 80.0f ||
+               status->humidity < 0.0f || status->humidity > 100.0f ||
+               status->pressure < 300.0f || status->pressure > 1100.0f) {
+        status->sensor_health = 50; // Out of range readings
+    } else {
+        status->sensor_health = 100; // All sensors healthy
+    }
     
     return ROTS_OK;
 }

@@ -9,7 +9,7 @@ extern "C" {
 #include "rots_sender.h"
 #include <stdarg.h>
 
-// 函数声明
+// Function declarations
 ROTS_StatusTypeDef ROTS_Debug_Init(void);
 void ROTS_Debug_SetLevel(ROTS_DebugLevel_t level);
 void ROTS_Debug_Print(ROTS_DebugLevel_t level, const char* format, ...);
@@ -24,7 +24,7 @@ void ROTS_Debug_BlinkLED(uint8_t pin, uint8_t times, uint16_t delay_ms);
 void ROTS_Debug_ErrorLED(bool state);
 void ROTS_Debug_StatusLED(bool state);
 
-// 调试宏定义
+// Debug macro definitions
 #define DEBUG_ERROR(fmt, ...)   ROTS_Debug_Print(ROTS_DEBUG_ERROR, fmt, ##__VA_ARGS__)
 #define DEBUG_WARNING(fmt, ...) ROTS_Debug_Print(ROTS_DEBUG_WARNING, fmt, ##__VA_ARGS__)
 #define DEBUG_INFO(fmt, ...)    ROTS_Debug_Print(ROTS_DEBUG_INFO, fmt, ##__VA_ARGS__)

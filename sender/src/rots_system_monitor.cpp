@@ -1,69 +1,76 @@
-// ROTS System Monitor - 系统监控模块
+// ROTS System Monitor - System Monitoring Module
 #include "rots_sender.h"
 #include "rots_system_monitor.h"
 #include "rots_debug.h"
+#include <WiFi.h>
 
-// 私有变量
+// Private variables
 static bool monitor_initialized = false;
 static uint32_t error_log[32];
 static uint8_t error_count = 0;
 static uint32_t system_start_time = 0;
 
-// 初始化系统监控
+// Battery voltage monitoring pin
+#define BATTERY_VOLTAGE_PIN 35  // ADC1_CH7 on ESP32
+
+// Initialize system monitor
 ROTS_StatusTypeDef ROTS_SystemMonitor_Init(void) {
-    // 初始化错误日志
+    // Initialize error log
     memset(error_log, 0, sizeof(error_log));
     error_count = 0;
     
-    // 记录系统启动时间
+    // Record system start time
     system_start_time = millis();
+    
+    // Configure battery voltage monitoring pin
+    pinMode(BATTERY_VOLTAGE_PIN, INPUT);
     
     monitor_initialized = true;
     DEBUG_INFO("System monitor initialized\r\n");
     return ROTS_OK;
 }
 
-// 更新系统监控
+// Update system monitor
 ROTS_StatusTypeDef ROTS_SystemMonitor_Update(void) {
     if (!monitor_initialized) {
         return ROTS_ERROR;
     }
     
-    // 检查内存使用
-    if (ESP.getFreeHeap() < 10000) { // 小于10KB
+    // Check memory usage
+    if (ESP.getFreeHeap() < 10000) { // Less than 10KB
         ROTS_SystemMonitor_LogError(ROTS_MEMORY_ERROR);
     }
     
-    // 检查WiFi连接
+    // Check WiFi connection
     if (WiFi.status() != WL_CONNECTED) {
         ROTS_SystemMonitor_LogError(ROTS_COMM_ERROR);
     }
     
-    // 更新状态LED
+    // Update status LED
     ROTS_Debug_StatusLED(WiFi.status() == WL_CONNECTED);
     
     return ROTS_OK;
 }
 
-// 记录错误
+// Log system error
 ROTS_StatusTypeDef ROTS_SystemMonitor_LogError(ROTS_StatusTypeDef error_code) {
     if (!monitor_initialized) {
         return ROTS_ERROR;
     }
     
-    // 添加错误到日志
+    // Add error to log
     if (error_count < 32) {
         error_log[error_count] = (uint32_t)error_code;
         error_count++;
     } else {
-        // 循环覆盖
+        // Shift log entries (circular buffer)
         for (int i = 0; i < 31; i++) {
             error_log[i] = error_log[i + 1];
         }
         error_log[31] = (uint32_t)error_code;
     }
     
-    // 错误LED指示
+    // Error LED indication
     ROTS_Debug_ErrorLED(true);
     delay(100);
     ROTS_Debug_ErrorLED(false);
@@ -72,7 +79,7 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_LogError(ROTS_StatusTypeDef error_code) {
     return ROTS_OK;
 }
 
-// 获取系统状态
+// Get system status
 ROTS_StatusTypeDef ROTS_SystemMonitor_GetStatus(ROTS_SystemStatus_t* status) {
     if (!monitor_initialized || !status) {
         return ROTS_INVALID_PARAM;
@@ -84,12 +91,23 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_GetStatus(ROTS_SystemStatus_t* status) {
     status->error_count = error_count;
     status->wifi_connected = (WiFi.status() == WL_CONNECTED);
     status->wifi_rssi = WiFi.RSSI();
-    status->battery_voltage = 3.7f; // 模拟值
+    
+    // Read battery voltage from ADC
+    // ESP32 ADC: 0-4095 for 0-3.3V
+    // Typical battery voltage divider: Vbat / 2 (using two equal resistors)
+    // So actual battery voltage = ADC_voltage * 2
+    int adc_value = analogRead(BATTERY_VOLTAGE_PIN);
+    float adc_voltage = (adc_value * 3.3f) / 4095.0f;
+    status->battery_voltage = adc_voltage * 2.0f; // Voltage divider ratio
+    
+    // Clamp battery voltage to reasonable range
+    if (status->battery_voltage < 0.0f) status->battery_voltage = 0.0f;
+    if (status->battery_voltage > 4.5f) status->battery_voltage = 4.5f;
     
     return ROTS_OK;
 }
 
-// 获取错误日志
+// Get error log
 ROTS_StatusTypeDef ROTS_SystemMonitor_GetErrorLog(uint32_t* log, uint8_t max_count, uint8_t* actual_count) {
     if (!monitor_initialized || !log || !actual_count) {
         return ROTS_INVALID_PARAM;
@@ -97,7 +115,7 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_GetErrorLog(uint32_t* log, uint8_t max_cou
     
     uint8_t count = (error_count < max_count) ? error_count : max_count;
     
-    // 复制错误日志
+    // Copy error log
     for (int i = 0; i < count; i++) {
         log[i] = error_log[i];
     }
@@ -106,7 +124,7 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_GetErrorLog(uint32_t* log, uint8_t max_cou
     return ROTS_OK;
 }
 
-// 清除错误日志
+// Clear error log
 ROTS_StatusTypeDef ROTS_SystemMonitor_ClearErrorLog(void) {
     if (!monitor_initialized) {
         return ROTS_ERROR;
@@ -119,7 +137,7 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_ClearErrorLog(void) {
     return ROTS_OK;
 }
 
-// 获取系统信息
+// Get system information
 ROTS_StatusTypeDef ROTS_SystemMonitor_GetSystemInfo(ROTS_SystemInfo_t* info) {
     if (!monitor_initialized || !info) {
         return ROTS_INVALID_PARAM;

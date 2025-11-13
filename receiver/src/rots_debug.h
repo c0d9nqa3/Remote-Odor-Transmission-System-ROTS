@@ -1,4 +1,12 @@
-// ROTS Debug Module Header
+/**
+ * @file rots_debug.h
+ * @brief ROTS Debug Module Header
+ * @author ROTS Team
+ * @date 2024
+ * 
+ * Header file for debug and logging functionality
+ */
+
 #ifndef ROTS_DEBUG_H
 #define ROTS_DEBUG_H
 
@@ -8,7 +16,7 @@ extern "C" {
 
 #include "rots_receiver.h"
 
-// 调试级别
+/* Debug level enumeration */
 typedef enum {
     ROTS_DEBUG_ERROR = 0,
     ROTS_DEBUG_WARNING = 1,
@@ -16,7 +24,7 @@ typedef enum {
     ROTS_DEBUG_DEBUG = 3
 } ROTS_DebugLevel_t;
 
-// 函数声明
+/* Function prototypes */
 ROTS_StatusTypeDef ROTS_Debug_Init(void);
 void ROTS_Debug_SetLevel(ROTS_DebugLevel_t level);
 void ROTS_Debug_Print(ROTS_DebugLevel_t level, const char* format, ...);
@@ -28,7 +36,7 @@ void ROTS_Debug_PrintWiFiStatus(void);
 void ROTS_Debug_PrintMQTTStatus(void);
 void ROTS_Debug_PrintMemoryUsage(void);
 
-// 调试宏定义
+/* Debug macros */
 #define DEBUG_ERROR(fmt, ...)   ROTS_Debug_Print(ROTS_DEBUG_ERROR, fmt, ##__VA_ARGS__)
 #define DEBUG_WARNING(fmt, ...) ROTS_Debug_Print(ROTS_DEBUG_WARNING, fmt, ##__VA_ARGS__)
 #define DEBUG_INFO(fmt, ...)    ROTS_Debug_Print(ROTS_DEBUG_INFO, fmt, ##__VA_ARGS__)

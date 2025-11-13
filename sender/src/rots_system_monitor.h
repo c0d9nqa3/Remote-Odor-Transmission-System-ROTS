@@ -8,7 +8,7 @@ extern "C" {
 
 #include "rots_sender.h"
 
-// 系统状态结构
+// System status structure
 typedef struct {
     uint32_t uptime;
     uint32_t free_heap;
@@ -19,7 +19,7 @@ typedef struct {
     float battery_voltage;
 } ROTS_SystemStatus_t;
 
-// 系统信息结构
+// System information structure
 typedef struct {
     char chip_model[32];
     uint8_t chip_revision;
@@ -30,7 +30,7 @@ typedef struct {
     uint32_t uptime;
 } ROTS_SystemInfo_t;
 
-// 函数声明
+// Function declarations
 ROTS_StatusTypeDef ROTS_SystemMonitor_Init(void);
 ROTS_StatusTypeDef ROTS_SystemMonitor_Update(void);
 ROTS_StatusTypeDef ROTS_SystemMonitor_LogError(ROTS_StatusTypeDef error_code);

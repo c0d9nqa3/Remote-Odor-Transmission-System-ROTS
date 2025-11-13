@@ -181,23 +181,23 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_SetState(ROTS_SystemState_t state)
 }
 
 /**
- * @brief Update temperature reading
+ * @brief Update temperature reading from hardware sensor
  */
 static void ROTS_SystemMonitor_UpdateTemperature(void)
 {
-    // This would typically read from a temperature sensor
-    // For now, we'll use a simulated value
-    system_status.temperature = 25.0f;  // 25°C
+    // Read temperature from internal temperature sensor
+    system_status.temperature = ROTS_Hardware_ReadTemperature();
 }
 
 /**
- * @brief Update humidity reading
+ * @brief Update humidity reading from hardware sensor
  */
 static void ROTS_SystemMonitor_UpdateHumidity(void)
 {
-    // This would typically read from a humidity sensor
-    // For now, we'll use a simulated value
-    system_status.humidity = 50.0f;  // 50% RH
+    // Read humidity from hardware sensor (if available)
+    // Note: STM32F4 does not have built-in humidity sensor
+    // This requires external sensor or returns default value
+    system_status.humidity = ROTS_Hardware_ReadHumidity();
 }
 
 /**

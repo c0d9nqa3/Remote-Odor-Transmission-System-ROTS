@@ -8,7 +8,7 @@ extern "C" {
 
 #include "rots_sender.h"
 
-// 传感器状态结构
+// Sensor status structure
 typedef struct {
     bool initialized;
     uint32_t last_read_time;
@@ -18,7 +18,7 @@ typedef struct {
     uint8_t sensor_health; // 0-100%
 } ROTS_SensorStatus_t;
 
-// 函数声明
+// Function declarations
 ROTS_StatusTypeDef ROTS_SensorManager_Init(void);
 ROTS_StatusTypeDef ROTS_SensorManager_ReadSensors(ROTS_SensorData_t* data);
 void ROTS_SensorManager_UpdateData(const ROTS_SensorData_t* data);
@@ -27,7 +27,7 @@ ROTS_StatusTypeDef ROTS_SensorManager_GetHistoryData(ROTS_SensorData_t* data, ui
 ROTS_StatusTypeDef ROTS_SensorManager_CalibrateSensors(void);
 ROTS_StatusTypeDef ROTS_SensorManager_GetStatus(ROTS_SensorStatus_t* status);
 
-// 传感器读取函数
+// Sensor reading functions
 float ROTS_SensorManager_ReadTemperature(void);
 float ROTS_SensorManager_ReadHumidity(void);
 float ROTS_SensorManager_ReadPressure(void);

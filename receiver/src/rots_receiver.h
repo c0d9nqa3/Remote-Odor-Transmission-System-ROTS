@@ -64,9 +64,9 @@ typedef enum {
 typedef struct {
     uint8_t message_type;
     uint8_t odor_type;
-    uint8_t intensity;        // 0-100%
-    uint16_t duration;        // Duration in seconds
-    uint8_t pump_config[5];   // Pump configuration (0-100%)
+    uint8_t intensity;        /* 0-100% */
+    uint16_t duration;        /* Duration in seconds */
+    uint8_t pump_config[5];   /* Pump configuration (0-100%) */
     uint32_t timestamp;
     uint16_t checksum;
 } ROTS_MessageTypeDef;

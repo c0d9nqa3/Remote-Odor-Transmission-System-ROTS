@@ -24,6 +24,7 @@ ROTS_StatusTypeDef ROTS_ActuatorControl_ConfigurePumps(ROTS_MessageTypeDef* mess
 ROTS_StatusTypeDef ROTS_ActuatorControl_ConfigureValves(ROTS_MessageTypeDef* message);
 ROTS_StatusTypeDef ROTS_ActuatorControl_ConfigureFans(ROTS_MessageTypeDef* message);
 ROTS_StatusTypeDef ROTS_ActuatorControl_StartOdorGeneration(uint16_t duration);
+ROTS_StatusTypeDef ROTS_ActuatorControl_Update(void);
 ROTS_StatusTypeDef ROTS_ActuatorControl_StopOdorGeneration(void);
 ROTS_StatusTypeDef ROTS_ActuatorControl_EmergencyStop(void);
 ROTS_StatusTypeDef ROTS_ActuatorControl_GetStatus(uint8_t* pump_status, uint8_t* valve_status);

@@ -1,9 +1,9 @@
-// ROTS Communication Module - 通信模块
+// ROTS Communication Module - Communication Module
 #include "rots_sender.h"
 #include "rots_communication.h"
 #include "rots_debug.h"
 
-// 私有变量
+// Private variables
 static WiFiClient wifi_client;
 static PubSubClient mqtt_client(wifi_client);
 static bool wifi_connected = false;
@@ -11,28 +11,28 @@ static bool mqtt_connected = false;
 static uint32_t last_connection_attempt = 0;
 static uint32_t last_heartbeat = 0;
 
-// 私有函数声明
+// Private function declarations
 static void ROTS_Communication_MQTTCallback(char* topic, byte* payload, unsigned int length);
 static ROTS_StatusTypeDef ROTS_Communication_ConnectWiFi(void);
 static ROTS_StatusTypeDef ROTS_Communication_ConnectMQTT(void);
 static void ROTS_Communication_SendHeartbeat(void);
 
-// 初始化通信模块
+// Initialize communication module
 ROTS_StatusTypeDef ROTS_Communication_Init(void) {
     DEBUG_INFO("Initializing communication...\r\n");
     
-    // 连接WiFi
+    // Connect to WiFi
     ROTS_StatusTypeDef status = ROTS_Communication_ConnectWiFi();
     if (status != ROTS_OK) {
         DEBUG_ERROR("WiFi connection failed\r\n");
         return status;
     }
     
-    // 配置MQTT
+    // Configure MQTT
     mqtt_client.setServer(ROTS_MQTT_BROKER_HOST, ROTS_MQTT_BROKER_PORT);
     mqtt_client.setCallback(ROTS_Communication_MQTTCallback);
     
-    // 连接MQTT
+    // Connect to MQTT
     status = ROTS_Communication_ConnectMQTT();
     if (status != ROTS_OK) {
         DEBUG_ERROR("MQTT connection failed\r\n");
@@ -43,7 +43,7 @@ ROTS_StatusTypeDef ROTS_Communication_Init(void) {
     return ROTS_OK;
 }
 
-// 连接WiFi
+// Connect to WiFi
 static ROTS_StatusTypeDef ROTS_Communication_ConnectWiFi(void) {
     DEBUG_INFO("Connecting to WiFi: %s\r\n", ROTS_WIFI_SSID);
     
@@ -64,7 +64,7 @@ static ROTS_StatusTypeDef ROTS_Communication_ConnectWiFi(void) {
     return ROTS_OK;
 }
 
-// 连接MQTT
+// Connect to MQTT broker
 static ROTS_StatusTypeDef ROTS_Communication_ConnectMQTT(void) {
     DEBUG_INFO("Connecting to MQTT broker...\r\n");
     
@@ -73,7 +73,7 @@ static ROTS_StatusTypeDef ROTS_Communication_ConnectMQTT(void) {
         return ROTS_COMM_ERROR;
     }
     
-    // 订阅状态主题
+    // Subscribe to status topic
     if (!mqtt_client.subscribe(ROTS_MQTT_TOPIC_STATUS)) {
         DEBUG_ERROR("Failed to subscribe to status topic\r\n");
         return ROTS_COMM_ERROR;
@@ -84,13 +84,13 @@ static ROTS_StatusTypeDef ROTS_Communication_ConnectMQTT(void) {
     return ROTS_OK;
 }
 
-// 发送气味检测结果
+// Send odor detection result
 ROTS_StatusTypeDef ROTS_Communication_SendOdorDetection(const ROTS_OdorResult_t* result) {
     if (!mqtt_connected || !result) {
         return ROTS_INVALID_PARAM;
     }
     
-    // 创建JSON消息
+    // Create JSON message
     DynamicJsonDocument doc(512);
     doc["device_id"] = ROTS_MQTT_CLIENT_ID;
     doc["odor_type"] = result->odor_type;
@@ -99,11 +99,11 @@ ROTS_StatusTypeDef ROTS_Communication_SendOdorDetection(const ROTS_OdorResult_t*
     doc["intensity"] = result->intensity;
     doc["timestamp"] = result->timestamp;
     
-    // 序列化JSON
+    // Serialize JSON
     char json_string[512];
     serializeJson(doc, json_string);
     
-    // 发送MQTT消息
+    // Publish MQTT message
     if (!mqtt_client.publish(ROTS_MQTT_TOPIC_DETECTION, json_string)) {
         DEBUG_ERROR("Failed to publish detection result\r\n");
         return ROTS_COMM_ERROR;
@@ -113,13 +113,13 @@ ROTS_StatusTypeDef ROTS_Communication_SendOdorDetection(const ROTS_OdorResult_t*
     return ROTS_OK;
 }
 
-// 发送状态信息
+// Send status information
 ROTS_StatusTypeDef ROTS_Communication_SendStatus(const ROTS_SenderStatus_t* status) {
     if (!mqtt_connected || !status) {
         return ROTS_INVALID_PARAM;
     }
     
-    // 创建JSON消息
+    // Create JSON message
     DynamicJsonDocument doc(256);
     doc["device_id"] = ROTS_MQTT_CLIENT_ID;
     doc["state"] = status->state;
@@ -128,11 +128,11 @@ ROTS_StatusTypeDef ROTS_Communication_SendStatus(const ROTS_SenderStatus_t* stat
     doc["battery_voltage"] = status->battery_voltage;
     doc["timestamp"] = millis();
     
-    // 序列化JSON
+    // Serialize JSON
     char json_string[256];
     serializeJson(doc, json_string);
     
-    // 发送MQTT消息
+    // Publish MQTT message
     if (!mqtt_client.publish(ROTS_MQTT_TOPIC_STATUS, json_string)) {
         DEBUG_ERROR("Failed to publish status\r\n");
         return ROTS_COMM_ERROR;
@@ -141,23 +141,23 @@ ROTS_StatusTypeDef ROTS_Communication_SendStatus(const ROTS_SenderStatus_t* stat
     return ROTS_OK;
 }
 
-// 发送错误信息
+// Send error information
 ROTS_StatusTypeDef ROTS_Communication_SendError(ROTS_StatusTypeDef error_code) {
     if (!mqtt_connected) {
         return ROTS_COMM_ERROR;
     }
     
-    // 创建JSON消息
+    // Create JSON message
     DynamicJsonDocument doc(128);
     doc["device_id"] = ROTS_MQTT_CLIENT_ID;
     doc["error_code"] = error_code;
     doc["timestamp"] = millis();
     
-    // 序列化JSON
+    // Serialize JSON
     char json_string[128];
     serializeJson(doc, json_string);
     
-    // 发送MQTT消息
+    // Publish MQTT message
     if (!mqtt_client.publish(ROTS_MQTT_TOPIC_ERROR, json_string)) {
         DEBUG_ERROR("Failed to publish error\r\n");
         return ROTS_COMM_ERROR;
@@ -167,16 +167,16 @@ ROTS_StatusTypeDef ROTS_Communication_SendError(ROTS_StatusTypeDef error_code) {
     return ROTS_OK;
 }
 
-// 更新通信状态
+// Update communication status
 ROTS_StatusTypeDef ROTS_Communication_Update(void) {
-    // 检查WiFi连接
+    // Check WiFi connection
     if (WiFi.status() != WL_CONNECTED) {
         if (wifi_connected) {
             DEBUG_WARNING("WiFi disconnected\r\n");
             wifi_connected = false;
         }
         
-        // 尝试重连
+        // Attempt to reconnect
         if (millis() - last_connection_attempt > 5000) {
             ROTS_Communication_ConnectWiFi();
             last_connection_attempt = millis();
@@ -186,14 +186,14 @@ ROTS_StatusTypeDef ROTS_Communication_Update(void) {
         wifi_connected = true;
     }
     
-    // 检查MQTT连接
+    // Check MQTT connection
     if (wifi_connected && !mqtt_client.connected()) {
         if (mqtt_connected) {
             DEBUG_WARNING("MQTT disconnected\r\n");
             mqtt_connected = false;
         }
         
-        // 尝试重连
+        // Attempt to reconnect
         if (millis() - last_connection_attempt > 5000) {
             ROTS_Communication_ConnectMQTT();
             last_connection_attempt = millis();
@@ -203,13 +203,13 @@ ROTS_StatusTypeDef ROTS_Communication_Update(void) {
         mqtt_connected = true;
     }
     
-    // 处理MQTT消息
+    // Process MQTT messages
     if (mqtt_connected) {
         mqtt_client.loop();
     }
     
-    // 发送心跳包
-    if (millis() - last_heartbeat > 30000) { // 每30秒
+    // Send heartbeat packet
+    if (millis() - last_heartbeat > 30000) { // Every 30 seconds
         ROTS_Communication_SendHeartbeat();
         last_heartbeat = millis();
     }
@@ -217,45 +217,45 @@ ROTS_StatusTypeDef ROTS_Communication_Update(void) {
     return ROTS_OK;
 }
 
-// MQTT回调函数
+// MQTT callback function
 static void ROTS_Communication_MQTTCallback(char* topic, byte* payload, unsigned int length) {
     DEBUG_DEBUG("MQTT message received: %s\r\n", topic);
     
-    // 解析JSON消息
+    // Parse JSON message
     DynamicJsonDocument doc(256);
     deserializeJson(doc, payload, length);
     
-    // 处理不同类型的消息
+    // Handle different message types
     if (strstr(topic, "status") != NULL) {
-        // 处理状态消息
+        // Handle status message
         DEBUG_INFO("Status message received\r\n");
     } else if (strstr(topic, "command") != NULL) {
-        // 处理命令消息
+        // Handle command message
         DEBUG_INFO("Command message received\r\n");
     }
 }
 
-// 发送心跳包
+// Send heartbeat packet
 static void ROTS_Communication_SendHeartbeat(void) {
     if (!mqtt_connected) return;
     
-    // 创建心跳消息
+    // Create heartbeat message
     DynamicJsonDocument doc(128);
     doc["device_id"] = ROTS_MQTT_CLIENT_ID;
     doc["type"] = "heartbeat";
     doc["timestamp"] = millis();
     
-    // 序列化JSON
+    // Serialize JSON
     char json_string[128];
     serializeJson(doc, json_string);
     
-    // 发送MQTT消息
+    // Publish MQTT message
     mqtt_client.publish("rots/heartbeat/001", json_string);
     
     DEBUG_DEBUG("Heartbeat sent\r\n");
 }
 
-// 获取通信状态
+// Get communication status
 ROTS_StatusTypeDef ROTS_Communication_GetStatus(ROTS_CommStatus_t* status) {
     if (!status) {
         return ROTS_INVALID_PARAM;
