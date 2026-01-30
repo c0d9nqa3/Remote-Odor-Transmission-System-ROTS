@@ -23,8 +23,8 @@ static uint8_t uart_rx_buffer[512];
 static uint16_t uart_rx_index = 0;
 static bool uart_rx_complete = false;
 
-/* Global UART handle for ESP8266 */
-static UART_HandleTypeDef huart_esp8266;
+/* Global UART handle for ESP8266 (exported for interrupt handler) */
+UART_HandleTypeDef huart_esp8266;
 
 /* WiFi and MQTT configuration */
 #ifndef ROTS_WIFI_SSID
@@ -782,12 +782,60 @@ ROTS_StatusTypeDef ROTS_Communication_Update(void)
         /* Send keep-alive if needed */
         static uint32_t last_keepalive = 0;
         if ((HAL_GetTick() - last_keepalive) >= 30000) {  /* Every 30 seconds */
-            /* Send MQTT PINGREQ */
-            uint8_t pingreq_packet[2] = {0xC0, 0x00};
-            ROTS_Communication_SendMQTTPacket(pingreq_packet, 2);
+            ROTS_Communication_KeepAlive();
             last_keepalive = HAL_GetTick();
         }
     }
     
     return ROTS_OK;
+}
+
+/**
+ * @brief Keep alive communication (send heartbeat)
+ * @return ROTS_OK if successful, error code otherwise
+ */
+ROTS_StatusTypeDef ROTS_Communication_KeepAlive(void)
+{
+    if (!mqtt_connected) {
+        return ROTS_COMM_ERROR;
+    }
+    
+    /* Send MQTT PINGREQ packet */
+    uint8_t pingreq_packet[2] = {0xC0, 0x00};
+    return ROTS_Communication_SendMQTTPacket(pingreq_packet, 2);
+}
+
+/**
+ * @brief MQTT message callback (not used in AT command mode, kept for compatibility)
+ * @param topic Topic name
+ * @param payload Message payload
+ * @param length Payload length
+ */
+void ROTS_MQTT_MessageCallback(char* topic, char* payload, int length)
+{
+    /* In AT command mode, messages are received via UART interrupt */
+    /* This callback is kept for compatibility but not actively used */
+    (void)topic;
+    (void)payload;
+    (void)length;
+}
+
+/**
+ * @brief MQTT connect callback (not used in AT command mode, kept for compatibility)
+ */
+void ROTS_MQTT_ConnectCallback(void)
+{
+    /* Connection status is checked via AT commands */
+    mqtt_connected = true;
+    DEBUG_INFO("MQTT connected callback\r\n");
+}
+
+/**
+ * @brief MQTT disconnect callback (not used in AT command mode, kept for compatibility)
+ */
+void ROTS_MQTT_DisconnectCallback(void)
+{
+    /* Disconnection is detected via AT commands */
+    mqtt_connected = false;
+    DEBUG_WARNING("MQTT disconnected callback\r\n");
 }

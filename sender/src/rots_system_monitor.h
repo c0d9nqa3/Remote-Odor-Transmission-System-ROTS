@@ -2,11 +2,11 @@
 #ifndef ROTS_SYSTEM_MONITOR_H
 #define ROTS_SYSTEM_MONITOR_H
 
+#include "rots_sender.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "rots_sender.h"
 
 // System status structure
 typedef struct {

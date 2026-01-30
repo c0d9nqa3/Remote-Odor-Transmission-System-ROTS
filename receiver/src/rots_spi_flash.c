@@ -15,9 +15,9 @@
 /* SPI Handle */
 static SPI_HandleTypeDef hspi_flash;
 
-/* GPIO CS Pin */
-#define SPI_FLASH_CS_PORT   GPIOA
-#define SPI_FLASH_CS_PIN    GPIO_PIN_4
+/* GPIO CS Pin (PC5; PA4 is used for ESP8266 reset) */
+#define SPI_FLASH_CS_PORT   GPIOC
+#define SPI_FLASH_CS_PIN    GPIO_PIN_5
 
 /* Private function prototypes */
 static void ROTS_SPI_Flash_CS_Select(void);
@@ -41,6 +41,7 @@ ROTS_StatusTypeDef ROTS_SPI_Flash_Init(void)
     /* Enable clocks */
     __HAL_RCC_SPI1_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     
     /* Configure SPI pins */
     GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
@@ -50,7 +51,7 @@ ROTS_StatusTypeDef ROTS_SPI_Flash_Init(void)
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     
-    /* Configure CS pin */
+    /* Configure CS pin (PC5) */
     GPIO_InitStruct.Pin = SPI_FLASH_CS_PIN;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;

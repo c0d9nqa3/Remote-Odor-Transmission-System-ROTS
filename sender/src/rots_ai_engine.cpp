@@ -1,6 +1,7 @@
 // ROTS AI Engine - AI Inference Engine
 #include "rots_sender.h"
 #include "rots_ai_engine.h"
+#include "rots_sensor_manager.h"
 #include "rots_debug.h"
 #include <cmath>
 

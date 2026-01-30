@@ -3,6 +3,7 @@
 #include "rots_system_monitor.h"
 #include "rots_debug.h"
 #include <WiFi.h>
+#include <cstring>
 
 // Private variables
 static bool monitor_initialized = false;
@@ -143,7 +144,15 @@ ROTS_StatusTypeDef ROTS_SystemMonitor_GetSystemInfo(ROTS_SystemInfo_t* info) {
         return ROTS_INVALID_PARAM;
     }
     
-    strcpy(info->chip_model, ESP.getChipModel());
+    {
+        const char* p = ESP.getChipModel();
+        if (p) {
+            strncpy(info->chip_model, p, sizeof(info->chip_model) - 1);
+            info->chip_model[sizeof(info->chip_model) - 1] = '\0';
+        } else {
+            info->chip_model[0] = '\0';
+        }
+    }
     info->chip_revision = ESP.getChipRevision();
     info->cpu_freq = ESP.getCpuFreqMHz();
     info->flash_size = ESP.getFlashChipSize();

@@ -2,11 +2,11 @@
 #ifndef ROTS_AI_ENGINE_H
 #define ROTS_AI_ENGINE_H
 
+#include "rots_sender.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "rots_sender.h"
 
 // AI配置
 #define ROTS_AI_FEATURE_SIZE      15

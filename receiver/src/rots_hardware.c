@@ -110,17 +110,21 @@ ROTS_StatusTypeDef ROTS_PWM_Init(void)
     TIM_OC_InitTypeDef sConfigOC = {0};
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     
-    /* Enable TIM2 and TIM3 clocks */
     __HAL_RCC_TIM2_CLK_ENABLE();
     __HAL_RCC_TIM3_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     
-    /* Configure GPIO pins for TIM2 PWM (PA0, PA1, PA2, PA3) */
-    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3;
+    /* TIM2 PWM: PA0/PA1 (CH1/2), PB10/PB11 (CH3/4). PA2/PA3 reserved for USART2/ESP8266. */
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_11;
+    GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
     
     /* Configure TIM2 for pumps 1-4 */
     htim2.Instance = TIM2;
@@ -198,8 +202,8 @@ ROTS_StatusTypeDef ROTS_PWM_Init(void)
 }
 
 /* Global UART handles */
-static UART_HandleTypeDef huart1;  /* Debug UART */
-static UART_HandleTypeDef huart2;  /* ESP8266 UART */
+UART_HandleTypeDef huart1;  /* Debug UART (USART1, exported for interrupt handler) */
+/* USART2 / ESP8266 UART is owned and initialized by rots_communication.c (huart_esp8266) */
 
 /**
  * @brief Initialize UART
@@ -209,13 +213,10 @@ ROTS_StatusTypeDef ROTS_UART_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     
-    /* Enable UART clocks */
     __HAL_RCC_USART1_CLK_ENABLE();
-    __HAL_RCC_USART2_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
     
-    /* Configure USART1 for debug (PA9=TX, PA10=RX) */
+    /* Configure USART1 for debug (PA9=TX, PA10=RX). USART2/ESP8266 is owned by rots_communication. */
     GPIO_InitStruct.Pin = GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -239,33 +240,6 @@ ROTS_StatusTypeDef ROTS_UART_Init(void)
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;
     
     if (HAL_UART_Init(&huart1) != HAL_OK) {
-        return ROTS_ERROR;
-    }
-    
-    /* Configure USART2 for ESP8266 (PA2=TX, PA3=RX) */
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    GPIO_InitStruct.Pin = GPIO_PIN_3;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = 115200;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    
-    if (HAL_UART_Init(&huart2) != HAL_OK) {
         return ROTS_ERROR;
     }
     

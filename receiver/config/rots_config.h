@@ -22,6 +22,10 @@
 #define ROTS_USE_SPI_FLASH_STORAGE        1
 #define ROTS_USE_ENVIRONMENTAL_SENSORS    0
 
+/* HAL Configuration - Disable Legacy CAN to avoid conflicts */
+#define HAL_CAN_LEGACY_MODULE_ENABLED     0
+#define HAL_CAN_MODULE_ENABLED            0  /* We don't use CAN in this project */
+
 /* Communication Configuration */
 #define ROTS_COMM_BAUDRATE            115200
 #define ROTS_COMM_TIMEOUT_MS          5000

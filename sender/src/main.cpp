@@ -150,13 +150,14 @@ void ROTS_Sender_MainLoop(void) {
     
     // Send status information (every 5 seconds)
     if (current_time - last_status_send >= 5000) {
-        // Update sender status
         ROTS_SystemStatus_t system_status;
         ROTS_SystemMonitor_GetStatus(&system_status);
         sender_status.wifi_connected = system_status.wifi_connected;
         sender_status.battery_voltage = system_status.battery_voltage;
-        
-        // Send status to cloud server
+        ROTS_CommStatus_t comm_status;
+        if (ROTS_Communication_GetStatus(&comm_status) == ROTS_OK) {
+            sender_status.mqtt_connected = comm_status.mqtt_connected;
+        }
         ROTS_Communication_SendStatus(&sender_status);
         last_status_send = current_time;
     }

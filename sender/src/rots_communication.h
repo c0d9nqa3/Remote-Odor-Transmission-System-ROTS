@@ -2,11 +2,11 @@
 #ifndef ROTS_COMMUNICATION_H
 #define ROTS_COMMUNICATION_H
 
+#include "rots_sender.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "rots_sender.h"
 
 // Communication status structure
 typedef struct {

@@ -14,24 +14,34 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Database connection
-const db = mysql.createConnection({
+// Database connection pool (better than single connection)
+const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'rots_db',
-  reconnect: true,
-  multipleStatements: false
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  reconnect: true
 });
 
-// Handle database connection errors
-db.on('error', (err) => {
-  console.error('Database connection error:', err);
-  if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-    console.log('Reconnecting to database...');
-    // Reconnection is handled automatically by mysql2
+// Test database connection
+db.getConnection((err, connection) => {
+  if (err) {
+    console.error('Database connection error:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+      console.log('Database connection was closed.');
+    }
+    if (err.code === 'ER_CON_COUNT_ERROR') {
+      console.log('Database has too many connections.');
+    }
+    if (err.code === 'ECONNREFUSED') {
+      console.log('Database connection was refused.');
+    }
   } else {
-    throw err;
+    console.log('Database connected successfully');
+    connection.release();
   }
 });
 

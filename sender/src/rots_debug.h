@@ -2,12 +2,12 @@
 #ifndef ROTS_DEBUG_H
 #define ROTS_DEBUG_H
 
+#include "rots_sender.h"
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "rots_sender.h"
-#include <stdarg.h>
 
 // Function declarations
 ROTS_StatusTypeDef ROTS_Debug_Init(void);

@@ -9,6 +9,8 @@
 
 #include "rots_receiver.h"
 #include "rots_system_monitor.h"
+#include "rots_actuator_control.h"
+#include "rots_hardware.h"
 #include <stdio.h>
 #include <string.h>
 

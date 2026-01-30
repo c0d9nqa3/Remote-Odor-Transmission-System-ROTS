@@ -1,6 +1,10 @@
 // ROTS Debug Module - Debug Module
 #include "rots_sender.h"
 #include "rots_debug.h"
+#include "rots_sensor_manager.h"
+#include "rots_ai_engine.h"
+#include "rots_communication.h"
+#include "rots_system_monitor.h"
 
 // Debug level
 static ROTS_DebugLevel_t debug_level = ROTS_DEBUG_INFO;

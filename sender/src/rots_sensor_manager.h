@@ -2,11 +2,11 @@
 #ifndef ROTS_SENSOR_MANAGER_H
 #define ROTS_SENSOR_MANAGER_H
 
+#include "rots_sender.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "rots_sender.h"
 
 // Sensor status structure
 typedef struct {

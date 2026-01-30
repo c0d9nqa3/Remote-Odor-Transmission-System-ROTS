@@ -13,16 +13,18 @@
 #include "rots_communication.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
-/* Debug UART handle */
-static UART_HandleTypeDef huart_debug;
+/* Debug UART handle - use huart1 from hardware module */
+extern UART_HandleTypeDef huart1;
+#define huart_debug huart1
 
 /* Debug level */
 static ROTS_DebugLevel_t debug_level = ROTS_DEBUG_INFO;
 
-/* External variables */
-extern bool wifi_connected;
-extern bool mqtt_connected;
+/* External variables from communication module */
+/* Note: These are static in rots_communication.c, so we need getter functions */
+/* For now, we'll use the communication module's status directly */
 
 /**
  * @brief Initialize debug UART
@@ -30,33 +32,8 @@ extern bool mqtt_connected;
  */
 ROTS_StatusTypeDef ROTS_Debug_Init(void)
 {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    
-    /* Enable clocks */
-    __HAL_RCC_USART1_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    
-    /* Configure USART1 pins (PA9=TX, PA10=RX) */
-    GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
-    /* Configure USART1 for debug output */
-    huart_debug.Instance = USART1;
-    huart_debug.Init.BaudRate = 115200;
-    huart_debug.Init.WordLength = UART_WORDLENGTH_8B;
-    huart_debug.Init.StopBits = UART_STOPBITS_1;
-    huart_debug.Init.Parity = UART_PARITY_NONE;
-    huart_debug.Init.Mode = UART_MODE_TX_RX;
-    huart_debug.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart_debug.Init.OverSampling = UART_OVERSAMPLING_16;
-    
-    if (HAL_UART_Init(&huart_debug) != HAL_OK) {
-        return ROTS_ERROR;
-    }
+    /* USART1 is already initialized by ROTS_UART_Init() in hardware module */
+    /* We just use the existing huart1 handle */
     
     /* Send startup message */
     ROTS_Debug_Print(ROTS_DEBUG_INFO, "ROTS Debug System Started\r\n");
@@ -238,9 +215,12 @@ void ROTS_Debug_PrintError(ROTS_StatusTypeDef error_code)
  */
 void ROTS_Debug_PrintWiFiStatus(void)
 {
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "=== WiFi Status ===\r\n");
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "SSID: %s\r\n", ROTS_WIFI_SSID);
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "Connected: %s\r\n", wifi_connected ? "Yes" : "No");
+    ROTS_SystemStatus_t system_status;
+    if (ROTS_SystemMonitor_GetStatus(&system_status) == ROTS_OK) {
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "=== WiFi Status ===\r\n");
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "SSID: %s\r\n", ROTS_WIFI_SSID);
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "Connected: %s\r\n", system_status.communication_active ? "Yes" : "No");
+    }
 }
 
 /**
@@ -248,10 +228,13 @@ void ROTS_Debug_PrintWiFiStatus(void)
  */
 void ROTS_Debug_PrintMQTTStatus(void)
 {
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "=== MQTT Status ===\r\n");
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "Broker: %s:%d\r\n", ROTS_MQTT_BROKER_HOST, ROTS_MQTT_BROKER_PORT);
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "Client ID: %s\r\n", ROTS_MQTT_CLIENT_ID);
-    ROTS_Debug_Print(ROTS_DEBUG_INFO, "Connected: %s\r\n", mqtt_connected ? "Yes" : "No");
+    ROTS_SystemStatus_t system_status;
+    if (ROTS_SystemMonitor_GetStatus(&system_status) == ROTS_OK) {
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "=== MQTT Status ===\r\n");
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "Broker: %s:%d\r\n", ROTS_MQTT_BROKER_HOST, ROTS_MQTT_BROKER_PORT);
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "Client ID: %s\r\n", ROTS_MQTT_CLIENT_ID);
+        ROTS_Debug_Print(ROTS_DEBUG_INFO, "Connected: %s\r\n", system_status.communication_active ? "Yes" : "No");
+    }
 }
 
 /**

@@ -48,8 +48,8 @@ typedef enum {
 /* ROTS Actuator States */
 typedef enum {
     ROTS_ACTUATOR_OFF = 0x00,
-    ROTS_ACTUATOR_ON = 0x01,
-    ROTS_ACTUATOR_ERROR = 0x02
+    ROTS_ACTUATOR_ON = 0x01
+    /* Note: ROTS_ACTUATOR_ERROR is defined in ROTS_StatusTypeDef */
 } ROTS_ActuatorState_t;
 
 /* ROTS System States */
@@ -151,9 +151,10 @@ typedef struct {
 #define ROTS_WATCHDOG_TIMEOUT     10000
 
 /* Function Prototypes */
-ROTS_StatusTypeDef ROTS_ProcessOdorCommand(ROTS_MessageTypeDef* message);
+/* Note: ROTS_ProcessOdorCommand is implemented as ROTS_ActuatorControl_ProcessOdorCommand */
 ROTS_StatusTypeDef ROTS_SystemClock_Init(void);
-void ROTS_SystemMonitor_LogError(ROTS_StatusTypeDef error_code);
+ROTS_StatusTypeDef ROTS_SystemMonitor_LogError(ROTS_StatusTypeDef error_code);
+void SystemClock_Config(void);
 
 #ifdef __cplusplus
 }

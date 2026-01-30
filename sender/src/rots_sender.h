@@ -2,16 +2,16 @@
 #ifndef ROTS_SENDER_H
 #define ROTS_SENDER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <SPI.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // System status codes
 typedef enum {
@@ -93,15 +93,15 @@ typedef struct {
 #define ROTS_STATUS_LED_PIN       4
 #define ROTS_SENSOR_POWER_PIN     5
 
-// MQ sensor pins
-#define ROTS_MQ2_PIN              A0
-#define ROTS_MQ3_PIN              A1
-#define ROTS_MQ4_PIN              A2
-#define ROTS_MQ5_PIN              A3
-#define ROTS_MQ6_PIN              A4
-#define ROTS_MQ7_PIN              A5
-#define ROTS_MQ8_PIN              A6
-#define ROTS_MQ9_PIN              A7
+// MQ sensor pins (ESP32 ADC channels on GPIO 32-39)
+#define ROTS_MQ2_PIN              32  // ADC1_CH4
+#define ROTS_MQ3_PIN              33  // ADC1_CH5
+#define ROTS_MQ4_PIN              34  // ADC1_CH6
+#define ROTS_MQ5_PIN              35  // ADC1_CH7
+#define ROTS_MQ6_PIN              36  // ADC1_CH0 (VP)
+#define ROTS_MQ7_PIN              39  // ADC1_CH3 (VN)
+#define ROTS_MQ8_PIN              25  // ADC2_CH8 (fallback)
+#define ROTS_MQ9_PIN              26  // ADC2_CH9 (fallback)
 
 // I2C pins (DHT22, BMP280)
 #define ROTS_SDA_PIN              21

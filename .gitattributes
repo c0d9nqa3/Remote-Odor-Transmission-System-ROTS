@@ -1,0 +1,5 @@
+* text=auto
+*.sh text eol=lf
+build.sh text eol=lf
+fix_crlf.sh text eol=lf
+sender/run.sh text eol=lf

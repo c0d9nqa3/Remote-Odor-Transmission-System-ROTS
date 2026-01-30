@@ -1,0 +1,7 @@
+receiver/vendor/
+receiver/build/
+sender/.pio/
+sender.pioenvs/
+sender.piolibdeps/
+cloud-server/node_modules/
+.env

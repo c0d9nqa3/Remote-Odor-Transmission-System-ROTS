@@ -10,8 +10,88 @@
 #include "stm32f4xx_hal.h"
 #include "rots_receiver.h"
 #include "rots_actuator_control.h"
+#include "rots_communication.h"
 
+/* External variables */
 extern TIM_HandleTypeDef htim_timer;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart_esp8266;
+
+/**
+ * @brief This function handles Non maskable interrupt
+ */
+void NMI_Handler(void)
+{
+    /* User can add error handling code here */
+}
+
+/**
+ * @brief This function handles Hard fault interrupt
+ */
+void HardFault_Handler(void)
+{
+    while (1)
+    {
+        /* User can add error handling code here */
+    }
+}
+
+/**
+ * @brief This function handles Memory management fault
+ */
+void MemManage_Handler(void)
+{
+    while (1)
+    {
+        /* User can add error handling code here */
+    }
+}
+
+/**
+ * @brief This function handles Pre-fetch fault, memory access fault
+ */
+void BusFault_Handler(void)
+{
+    while (1)
+    {
+        /* User can add error handling code here */
+    }
+}
+
+/**
+ * @brief This function handles Undefined instruction or illegal state
+ */
+void UsageFault_Handler(void)
+{
+    while (1)
+    {
+        /* User can add error handling code here */
+    }
+}
+
+/**
+ * @brief This function handles System service call via SWI instruction
+ */
+void SVC_Handler(void)
+{
+    /* User can add code here */
+}
+
+/**
+ * @brief This function handles Debug monitor
+ */
+void DebugMon_Handler(void)
+{
+    /* User can add code here */
+}
+
+/**
+ * @brief This function handles Pendable request for system service
+ */
+void PendSV_Handler(void)
+{
+    /* User can add code here */
+}
 
 /**
  * @brief This function handles TIM4 global interrupt
@@ -26,7 +106,6 @@ void TIM4_IRQHandler(void)
  */
 void USART1_IRQHandler(void)
 {
-    extern UART_HandleTypeDef huart1;
     HAL_UART_IRQHandler(&huart1);
 }
 
@@ -35,10 +114,7 @@ void USART1_IRQHandler(void)
  */
 void USART2_IRQHandler(void)
 {
-    extern UART_HandleTypeDef huart_esp8266;
-    if (&huart_esp8266 != NULL) {
-        HAL_UART_IRQHandler(&huart_esp8266);
-    }
+    HAL_UART_IRQHandler(&huart_esp8266);
 }
 
 /**
